@@ -1,0 +1,41 @@
+# For running LLMs to classify into Roud Clusters
+# Needs an NVIDIA GPU with 8+ GB VRAM
+
+# Requires Docker with the Compose plugin, and NVIDIA Container Toolkit (unless using wsl on Windows): 
+# docker: https://docs.docker.com/compose/install/
+# toolkit: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+
+# once all is installed, run "sudo docker compose up -d" in this directory or use Docker Desktop if on Windows.
+
+# llama-cpp docs: https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md
+services:
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: llama-server
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8083:8080"
+    volumes:
+      - llama-models:/models
+    environment:
+      LLAMA_CACHE: /models
+    # pull qwen3:8b on first startup
+    command: >
+      -hf Qwen/Qwen3-8B-GGUF:Q4_K_M --alias qwen3-8b --n-gpu-layers 999
+      --ctx-size 8192 --flash-attn on --reasoning-budget 512 --temp 0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  llama-models:
