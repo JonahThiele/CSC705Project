@@ -2,5 +2,3 @@
 ballad_tsne.npy
 ballad_embeddings.npy
 /.ipynb_checkpoints
-*.html
-*.png
